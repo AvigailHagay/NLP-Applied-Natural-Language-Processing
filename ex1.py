@@ -29,7 +29,7 @@ def edit_data(f):
         for word in lst:
             body += edit_word(word)+" "
 
-        data[i] = str(i+1) + "<S>" + body + "</S>\n"
+        data[i] = str(i+1) + " <S> " + body + " </S>\n"
     return data
 
 
@@ -62,12 +62,10 @@ def create_matrix():
 
     columns = read_columns()
     simlex = read_simlex()
-    matrix = []
 
-    columns = ["I go to school every day by bus .",
-            "i go to theatre every night by bus"]
-    simlex = ["I go to school every day by bus .",
-            "i go to theatre every night by bus"]
+    columns = ['<S>', '<\S>', '"<UNK>', '<!DIGIT!>'] + columns
+
+    matrix = []
     matrix.append(columns)
     for i in simlex:
         matrix.append([i]+[0] * (len(columns)-1))
@@ -83,9 +81,9 @@ def create_hash_table():
             line = line[line.index("<S>")+len("<S>"):line.index("</S>")-1].split()
             for j, word in enumerate(line):
                 if word in hash_table:
-                    hash_table[word].append([i, j])
+                    hash_table[word].append([i,j])
                 else:
-                    hash_table[word] = [[i, j]]
+                    hash_table[word]=[[i,j]]
     return hash_table
 
 
@@ -104,7 +102,8 @@ def frequency_counts(matrix, content, size):
 
     for row in range(1, len(matrix)):
         for col in range(1, len(matrix[0])):
-            matrix[row][col] = count(matrix[0][col], matrix[row][0], content, size)
+            if matrix[row][0]!=matrix[0][col]:
+                matrix[row][col] = count(matrix[0][col], matrix[row][0], content, size)
     return matrix
 
 
@@ -117,13 +116,19 @@ def count_val(content):
 
 
 def PPMI(mat, content):
+
     ppmiMat = mat
     allWords = count_val(content)
+    print(allWords)
     for row in range(1,len(ppmiMat)):
         for col in range(1, len(ppmiMat[0])):
             if ppmiMat[row][col] !=0:
-                ppmiMat[row][col] = math.log2((ppmiMat[row][col]/allWords)/
-                                          ((len(content[ppmiMat[row][0]])/allWords)*(len(content[ppmiMat[0][col]])/allWords)))
+                numerator = ppmiMat[row][col]/allWords
+                denominator = (len(content[ppmiMat[row][0]])/allWords)*(len(content[ppmiMat[0][col]])/allWords)
+                ppmiMat[row][col] = math.log(numerator/denominator)
+                if ppmiMat[row][col]>0:
+                    ppmiMat[row][col] = (2+numerator)/(2*len(ppmiMat[0])*len(ppmiMat)+allWords)
+
     return ppmiMat
 
 
@@ -136,11 +141,9 @@ with open('eng_wikipedia_2016_10K-sentences.txt', 'w') as f:
 matrix = create_matrix()
 content = create_hash_table()
 
-
 frequencyCountMat2 = frequency_counts(matrix, content, 2)
-df = pd.DataFrame(frequencyCountMat2)
-print(df)
 frequencyCountMax5 = frequency_counts(matrix, content, 5)
+
 ppmiMat2 = PPMI(frequencyCountMat2, content)
 ppmiMat5 = PPMI(frequencyCountMax5, content)
 
