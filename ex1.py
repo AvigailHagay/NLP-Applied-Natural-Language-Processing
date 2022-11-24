@@ -1,5 +1,6 @@
 import re
 import math
+import pandas as pd
 
 
 def edit_word(word):
@@ -61,8 +62,12 @@ def create_matrix():
 
     columns = read_columns()
     simlex = read_simlex()
-
     matrix = []
+
+    columns = ["I go to school every day by bus .",
+            "i go to theatre every night by bus"]
+    simlex = ["I go to school every day by bus .",
+            "i go to theatre every night by bus"]
     matrix.append(columns)
     for i in simlex:
         matrix.append([i]+[0] * (len(columns)-1))
@@ -104,6 +109,7 @@ def frequency_counts(matrix, content, size):
 
 
 def count_val(content):
+
     counter = 0
     for i in content:
         counter += len(content[i])
@@ -130,7 +136,10 @@ with open('eng_wikipedia_2016_10K-sentences.txt', 'w') as f:
 matrix = create_matrix()
 content = create_hash_table()
 
+
 frequencyCountMat2 = frequency_counts(matrix, content, 2)
+df = pd.DataFrame(frequencyCountMat2)
+print(df)
 frequencyCountMax5 = frequency_counts(matrix, content, 5)
 ppmiMat2 = PPMI(frequencyCountMat2, content)
 ppmiMat5 = PPMI(frequencyCountMax5, content)
