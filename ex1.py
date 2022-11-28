@@ -1,6 +1,7 @@
 import re
 import math
 import pandas as pd
+import numpy as np
 
 
 def edit_word(word):
@@ -40,7 +41,6 @@ def read_columns():
         wikipediaWords = col_words.readlines()
         for i in range(50, 20051):
             columns.append(wikipediaWords[i].split('\t')[1])
-    columns[:0] = ['-']
     return columns
 
 
@@ -63,7 +63,7 @@ def create_matrix():
     columns = read_columns()
     simlex = read_simlex()
 
-    columns = ['<S>', '<\S>', '"<UNK>', '<!DIGIT!>'] + columns
+    columns = ['-','<S>', '<\S>', '"<UNK>', '<!DIGIT!>'] + columns
 
     matrix = []
     matrix.append(columns)
@@ -119,17 +119,33 @@ def PPMI(mat, content):
 
     ppmiMat = mat
     allWords = count_val(content)
-    print(allWords)
+
     for row in range(1,len(ppmiMat)):
         for col in range(1, len(ppmiMat[0])):
-            if ppmiMat[row][col] !=0:
-                numerator = ppmiMat[row][col]/allWords
-                denominator = (len(content[ppmiMat[row][0]])/allWords)*(len(content[ppmiMat[0][col]])/allWords)
-                ppmiMat[row][col] = math.log(numerator/denominator)
-                if ppmiMat[row][col]>0:
-                    ppmiMat[row][col] = (2+numerator)/(2*len(ppmiMat[0])*len(ppmiMat)+allWords)
+            if ppmiMat[row][col] != 0:
+                numerator = ppmiMat[row][col] + 2
+                denominator = allWords + (2*len(ppmiMat[0])*len(ppmiMat))
+                pmi = numerator/denominator
+                pW = len(content[ppmiMat[0][col]]) / allWords
+                pC = len(content[ppmiMat[row][0]]) / allWords
+                ppmiMat[row][col] = max(math.log(pmi/(pW*pC)),0)
 
     return ppmiMat
+
+
+def cosine_measure(mat, fileName):
+    done = []
+    dataframe = pd.DataFrame(mat[1:len(mat)])
+    dataframe.index=dataframe[0]
+    file = open(fileName, 'w+')
+
+    with open('EN-SIMLEX-999.txt', 'r', encoding="utf8") as row_words:
+        rows = row_words.readlines()
+
+        for line in rows:
+            line = line.split('\t')
+            sim = np.dot(dataframe.loc[line[0]].tolist()[1:],dataframe.loc[line[1]].tolist()[1:])
+            file.write(line[0]+"\t"+line[1]+"\t"+str(sim)+"\n")
 
 
 with open('eng_wikipedia_2016_10K-sentences.txt', 'r', encoding="utf8") as file:
@@ -142,10 +158,12 @@ matrix = create_matrix()
 content = create_hash_table()
 
 frequencyCountMat2 = frequency_counts(matrix, content, 2)
-frequencyCountMax5 = frequency_counts(matrix, content, 5)
+frequencyCountMat5 = frequency_counts(matrix, content, 5)
 
 ppmiMat2 = PPMI(frequencyCountMat2, content)
-ppmiMat5 = PPMI(frequencyCountMax5, content)
+ppmiMat5 = PPMI(frequencyCountMat5, content)
 
-
-
+cosine_measure(frequencyCountMat2, "freq_window2.txt")
+cosine_measure(frequencyCountMat5, "freq_window5.txt")
+cosine_measure(ppmiMat2, "ppmi_window2.txt")
+cosine_measure(ppmiMat5, "ppmi_window5.txt")
