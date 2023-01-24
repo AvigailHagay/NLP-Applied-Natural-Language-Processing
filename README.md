@@ -1,4 +1,6 @@
 # NLP - Applied Natural Language Processing
+Author: Avigail Hagay
+
 This project is an exercise in text processing and distributional semantics, where you will implement a model that defines a distributional similarity measure between words. The script takes in a Simlex-999 dataset of word similarity scores, a corpus of Wikipedia sentences, and a list of the 20,000 most common words in the corpus as input. It then builds 4 word-context matrices with the following combinations:
 
 window of +/-2 words, frequency counts
